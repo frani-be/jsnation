@@ -407,8 +407,8 @@ fran@jsnation:~/story$ <span class="cur"></span></pre></div>
       <div class="avatar reveal">
         <div class="ring"></div>
         <div class="mask">
-          <img class="avatar-img a" src="_DSF7479_0000_Capa 1 copia.jpg" alt="Francisca Medina" loading="lazy">
-          <img class="avatar-img b" src="_DSF7479_0001_Fondo copia 2.jpg" alt="Francisca Medina" loading="lazy">
+          <img class="avatar-img a" src="img/_DSF7479_0000_Capa 1 copia.jpg" alt="Francisca Medina" loading="lazy">
+          <img class="avatar-img b" src="img/_DSF7479_0001_Fondo copia 2.jpg" alt="Francisca Medina" loading="lazy">
         </div>
       </div>
       <div class="bio">
@@ -450,7 +450,7 @@ fran@jsnation:~/story$ <span class="cur"></span></pre></div>
     <div class="ghost">algorist</div>
     <div class="art stacked">
       <figure class="art-img">
-        <img src="Artista entre patrones generativos-3.png" alt="An artist surrounded by screens full of generative patterns" loading="lazy">
+        <img src="img/Artista entre patrones generativos-3.png" alt="An artist surrounded by screens full of generative patterns" loading="lazy">
       </figure>
       <div class="art-mini" id="harmonograph"></div>
     </div>
@@ -619,7 +619,7 @@ fran@jsnation:~/story$ <span class="cur"></span></pre></div>
           <li><b>02</b> leaves that bloom where you point</li>
           <li><b>03</b> a puppet that dances on your hand</li>
         </ul>
-        <a class="btn" href="Infinite-Patterns-AI-Lab.html" target="_blank" rel="noopener">Open the AI lab</a>
+        <a class="btn" href="ai-lab/index.html" target="_blank" rel="noopener">Open the AI lab</a>
         <p class="lab-note">it opens its own page so the story stays light: the camera and the tracking models live there</p>
       </div>
     </div>
@@ -653,7 +653,7 @@ fran@jsnation:~/story$ <span class="cur"></span></pre></div>
   <section id="aibrush" class="scene">
     <div class="ghost">brush</div>
     <div class="art only">
-      <img src="Pincel de circuitos sobre negro-6.png" alt="A hand holding a brush whose bristles contain a circuit pattern" loading="lazy">
+      <img src="img/Pincel de circuitos sobre negro-6.png" alt="A hand holding a brush whose bristles contain a circuit pattern" loading="lazy">
     </div>
     <div class="copy">
       <p class="kicker reveal">11 · ai as the brush, not the artist</p>
@@ -740,8 +740,8 @@ fran@jsnation:~/story$ <span class="cur"></span></pre></div>
 
 </main>
 
-<script src="p5.min.js"></script>
-<script src="p5.sound.min.js"></script>
+<script src="js/p5.min.js"></script>
+<script src="js/p5.sound.min.js"></script>
 <script>
 "use strict";
 
@@ -1600,7 +1600,7 @@ mount("roomArt", (p) => {
       rebase();
     };
     img.onerror = () => { samplePts = sampleFallback(); mapPts(); rebase(); };
-    img.src = "logo.svg";
+    img.src = "img/logo.svg";
   };
 
   p.setup = () => {

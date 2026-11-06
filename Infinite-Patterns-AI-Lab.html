@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The AI Lab · Infinite Patterns in the Digital Canvas</title>
+<style>
+:root{--bg:#0b0b0c;--js:#f7df1e;--fg:#f5f4f0;--mut:#9ca3af;--line:#26262a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,monospace}
+h1{font-family:system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05}
+a{color:var(--js);text-decoration:none}
+.lab{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:12vh 5vw;text-align:center}
+.lab .kicker{color:var(--js);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.lab h1{font-size:clamp(30px,5vw,58px);margin-bottom:8px}
+.lab .sub{color:var(--mut);font-size:13px;max-width:580px;margin-bottom:18px;line-height:1.6}
+.card{display:block;width:min(560px,90vw);background:#141416;border:1px solid var(--line);border-radius:18px;padding:24px 26px;text-align:left;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;color:var(--fg)}
+.card:hover{transform:translateY(-4px);border-color:var(--js);box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 26px rgba(247,223,30,.1)}
+.card .num{color:var(--js);font-size:11px;letter-spacing:.08em}
+.card h3{font-size:20px;margin:6px 0}
+.card p{font-size:12px;color:var(--mut)}
+.card .go{display:inline-block;margin-top:12px;font-size:11px;color:var(--js)}
+.card .go::after{content:" →";transition:margin .2s ease}
+.card:hover .go::after{margin-left:6px}
+footer{position:fixed;left:20px;bottom:14px;font-size:11px;color:#6b6b72}
+</style></head><body>
+<div class="lab">
+  <p class="kicker">// the ai lab · jsnation 2026</p>
+  <h1>Prompt → sketch → <span style="color:var(--js)">iterate</span></h1>
+  <p class="sub">Three works drafted by a model from a single sentence. Each runs on your webcam and lives on its own page: the browser will ask for camera permission.</p>
+  <a class="card" href="AI-Lab-Portrait.html"><span class="num">01 · portrait</span><h3>Your portrait, point by point</h3><p>Brighter pixels grow bigger points: your image assembles itself.</p><span class="go">open</span></a>
+  <a class="card" href="AI-Lab-Gaze.html"><span class="num">02 · hand garden</span><h3>Leaves bloom where you point</h3><p>Pinch or snap your fingers to plant leaves in the air. Hand tracking included.</p><span class="go">open</span></a>
+  <a class="card" href="AI-Lab-Puppet.html"><span class="num">03 · puppet</span><h3>A puppet that dances on your hand</h3><p>Your hand pulls the strings of a little ragdoll.</p><span class="go">open</span></a>
+</div>
+<footer><a href="Infinite-Patterns-WebStory.html">← back to the story</a> · frani@jsnation:~$ ./ai-lab</footer>
+</body></html>

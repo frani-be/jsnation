@@ -1,0 +1,67 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portrait · AI Lab</title>
+<style>
+:root{--bg:#0b0b0c;--js:#f7df1e;--fg:#f5f4f0;--mut:#9ca3af;--line:#26262a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,monospace;overflow:hidden}
+h1{font-family:system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05}
+a{color:var(--js);text-decoration:none}
+header{position:fixed;top:0;left:0;right:0;z-index:5;padding:20px 26px;pointer-events:none;background:linear-gradient(180deg,rgba(11,11,12,.88),transparent)}
+header .kicker{font-size:11px;color:var(--js);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+header h1{font-size:clamp(20px,2.8vw,36px)}
+header .sub{font-size:12px;color:var(--mut);margin-top:6px;max-width:680px}
+#lab{position:fixed;inset:0}
+#lab canvas{display:block}
+.status{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;font-size:11px;color:var(--mut);text-align:center;cursor:pointer;max-width:92vw}
+.status .live{color:var(--js)}
+.status .off{color:#f87171}
+footer{position:fixed;left:20px;bottom:14px;z-index:5;font-size:11px;color:#6b6b72;pointer-events:none}
+footer a{pointer-events:auto}
+@media (max-width:700px){footer{display:none}}
+</style></head><body>
+<header>
+  <p class="kicker">// the ai lab · 01 of 03</p>
+  <h1>your portrait, <span style="color:var(--js)">point by point</span></h1>
+  <p class="sub">brighter pixels grow bigger points. the browser will ask for camera permission.</p>
+</header>
+<div id="lab"></div>
+<p class="status" id="camStatus">webcam: waiting…</p>
+<footer><a href="Infinite-Patterns-AI-Lab.html">← ai lab</a> · <a href="Infinite-Patterns-WebStory.html">story</a></footer>
+<script src="p5.min.js"></script>
+<script>
+new p5((p) => {
+  let video=null,camTried=false,camOk=false,pts=[];
+  const ensureCam=()=>{if(camTried)return;camTried=true;try{video=p.createCapture(p.VIDEO);video.size(160,120);video.hide();video.elt.onerror=()=>{camOk=false;};video.elt.onloadedmetadata=()=>{camOk=true;};}catch(e){camOk=false;}};
+  const camLive=()=>!!(camTried&&camOk&&video&&video.elt.videoWidth>0);
+  const rgb2hsb=(r,g,b)=>{r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d+(g<b?6:0))*60;else if(mx===g)h=((b-r)/d+2)*60;else h=((r-g)/d+4)*60;}return[h,mx===0?0:(d/mx)*100,mx*100];};
+  const camStatus=()=>{const el=document.getElementById("camStatus");if(!el)return;if(!camTried)el.innerHTML="webcam: waiting…";else if(camLive())el.innerHTML="webcam: <span class=\"live\">on</span>";else el.innerHTML="webcam: <span class=\"off\">unavailable or denied</span> · click to retry";};
+  document.getElementById("camStatus").addEventListener("click",()=>{camTried=false;camOk=false;if(video){try{video.remove();}catch(e){}}video=null;ensureCam();});
+  let sCanvas=null,sCtx=null;
+  const sampleVideo=()=>{if(!camLive())return null;const sw=video.elt.videoWidth,sh=video.elt.videoHeight;if(!sw||!sh)return null;
+    const S=160,SH=Math.max(1,Math.round(S*sh/sw));
+    if(!sCanvas){sCanvas=document.createElement("canvas");sCtx=sCanvas.getContext("2d",{willReadFrequently:true});}
+    if(sCanvas.width!==S||sCanvas.height!==SH){sCanvas.width=S;sCanvas.height=SH;}
+    try{sCtx.drawImage(video.elt,0,0,S,SH);return{data:sCtx.getImageData(0,0,S,SH).data,vw:S,vh:SH};}catch(e){return null;}};
+  const mapPt=(vw,vh,x,y)=>{const fit=Math.max(p.width/vw,p.height/vh),ox=(p.width-vw*fit)/2,oy=(p.height-vh*fit)/2;return[ox+(vw-x-0.5)*fit,oy+(y+0.5)*fit];};
+  const build=()=>{const s=sampleVideo();if(!s)return;const data=s.data,vw=s.vw,vh=s.vh;const step=2;pts=[];
+    for(let y=0;y<vh;y+=step)for(let x=0;x<vw;x+=step){const i=(y*vw+x)*4;const bri=(data[i]+data[i+1]+data[i+2])/3;const m=mapPt(vw,vh,x,y);
+      pts.push({hx:m[0],hy:m[1],sz:0.5+(bri/255)*4.5,px:Math.random()*p.width,py:Math.random()*p.height,vx:0,vy:0});}};
+  const refresh=()=>{const s=sampleVideo();if(!s)return;const data=s.data,vw=s.vw,vh=s.vh;const step=2;
+    if(pts.length!==Math.ceil(vh/step)*Math.ceil(vw/step)){build();return;}
+    let k=0;
+    for(let y=0;y<vh;y+=step)for(let x=0;x<vw;x+=step){const pt=pts[k++];const i=(y*vw+x)*4;const bri=(data[i]+data[i+1]+data[i+2])/3;const m=mapPt(vw,vh,x,y);
+      pt.hx=m[0];pt.hy=m[1];pt.sz=0.5+(bri/255)*4.5;}};
+  p.setup=()=>{p.createCanvas(p.windowWidth,p.windowHeight);p.pixelDensity(1);p.colorMode(p.RGB);p.background(10);ensureCam();};
+  p.draw=()=>{if(p.frameCount%30===0)camStatus();
+    p.noStroke();p.fill(0,0,0,70);p.rect(0,0,p.width,p.height);
+    if(camLive()){if(!pts.length&&p.frameCount%15===0)build();if(p.frameCount%50===0)refresh();
+      p.fill(247,223,30);
+      for(const pt of pts){pt.vx+=(pt.hx-pt.px)*0.24;pt.vy+=(pt.hy-pt.py)*0.24;pt.vx*=0.68;pt.vy*=0.68;
+        pt.px+=pt.vx;pt.py+=pt.vy;
+        p.circle(pt.px,pt.py,pt.sz*2);}}
+    else{if(!pts.length){for(let i=0;i<900;i++)pts.push({hx:p.random(p.width),hy:p.random(p.height),sz:2+Math.random()*3,px:p.random(p.width),py:p.random(p.height),vx:0,vy:0});}
+      p.fill(247,223,30,60);
+      for(const pt of pts){const na=p.noise(pt.px*0.003,pt.py*0.003,p.frameCount*0.0008)*p.TAU*3;pt.px+=Math.cos(na)*1.2;pt.py+=Math.sin(na)*1.2;p.circle(pt.px,pt.py,pt.sz);}}};
+  p.windowResized=()=>{p.resizeCanvas(p.windowWidth,p.windowHeight);};
+});
+</script></body></html>

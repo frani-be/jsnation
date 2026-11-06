@@ -1,0 +1,80 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puppet · AI Lab</title>
+<style>
+:root{--bg:#0b0b0c;--js:#f7df1e;--fg:#f5f4f0;--mut:#9ca3af;--line:#26262a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,monospace;overflow:hidden}
+h1{font-family:system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05}
+a{color:var(--js);text-decoration:none}
+header{position:fixed;top:0;left:0;right:0;z-index:5;padding:20px 26px;pointer-events:none;background:linear-gradient(180deg,rgba(11,11,12,.88),transparent)}
+header .kicker{font-size:11px;color:var(--js);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+header h1{font-size:clamp(20px,2.8vw,36px)}
+header .sub{font-size:12px;color:var(--mut);margin-top:6px;max-width:680px}
+#lab{position:fixed;inset:0}
+#lab canvas{display:block}
+.status{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;font-size:11px;color:var(--mut);text-align:center;cursor:pointer;max-width:92vw}
+.status .live{color:var(--js)}
+.status .off{color:#f87171}
+footer{position:fixed;left:20px;bottom:14px;z-index:5;font-size:11px;color:#6b6b72;pointer-events:none}
+footer a{pointer-events:auto}
+@media (max-width:700px){footer{display:none}}
+</style></head><body>
+<header>
+  <p class="kicker">// the ai lab · 03 of 03</p>
+  <h1>a puppet that dances on your <span style="color:var(--js)">hand</span></h1>
+  <p class="sub">your hand pulls the strings. loads a small hand-tracking model (needs internet).</p>
+</header>
+<div id="lab"></div>
+<p class="status" id="camStatus">webcam: waiting…</p>
+<footer><a href="Infinite-Patterns-AI-Lab.html">← ai lab</a> · <a href="Infinite-Patterns-WebStory.html">story</a></footer>
+<script src="p5.min.js"></script>
+<script>
+new p5((p) => {
+  let video=null,camTried=false,camOk=false,handpose=null,hands=[],puppets=[],cons=[],headPt,hLPt,hRPt,kLPt,kRPt;
+  const ensureCam=()=>{if(camTried)return;camTried=true;try{video=p.createCapture(p.VIDEO);video.size(160,120);video.hide();video.elt.onerror=()=>{camOk=false;};video.elt.onloadedmetadata=()=>{camOk=true;};}catch(e){camOk=false;}};
+  const camLive=()=>!!(camTried&&camOk&&video&&video.elt.videoWidth>0);
+  const camStatus=()=>{const el=document.getElementById("camStatus");if(!el)return;if(!camTried)el.innerHTML="webcam: waiting…";else if(camLive())el.innerHTML="webcam: <span class=\"live\">on</span>";else el.innerHTML="webcam: <span class=\"off\">unavailable or denied</span> · click to retry";};
+  document.getElementById("camStatus").addEventListener("click",()=>{camTried=false;camOk=false;if(video){try{video.remove();}catch(e){}}video=null;ensureCam();});
+  let ml5Pending=null;
+  const loadMl5=(cb)=>{if(window.ml5){cb();return;}
+    ml5Pending=ml5Pending||[];ml5Pending.push(cb);
+    if(ml5Pending.length>1)return;
+    const done=()=>{const cbs=ml5Pending;ml5Pending=null;cbs.forEach(f=>f());};
+    const tryLoad=(url)=>{const s=document.createElement("script");s.src=url;s.async=true;s.onload=()=>done();s.onerror=()=>{if(url.indexOf("unpkg")>=0)tryLoad("https://cdn.jsdelivr.net/npm/ml5@1/dist/ml5.js");else done();};document.head.appendChild(s);};
+    tryLoad("https://unpkg.com/ml5@1/dist/ml5.js");};
+  let handStarted=false,smooth=null;
+  const startHandpose=()=>{if(handStarted)return;handStarted=true;loadMl5(()=>{if(!window.ml5){document.getElementById("camStatus").innerHTML="tracking unavailable · <span class=\"live\">using your mouse</span>";setTimeout(()=>{handStarted=false;},4000);return;}
+    const ok=(model)=>{handpose=model;handpose.detectStart(video,(res)=>{hands=res;});document.getElementById("camStatus").innerHTML="tracking: <span class=\"live\">hand on</span> · raise your hand";};
+    const fail=(e)=>{handpose=null;document.getElementById("camStatus").innerHTML="tracking model failed · using your mouse";setTimeout(()=>{handStarted=false;},2000);};
+    try{const r=window.ml5.handPose({maxHands:1,flipHorizontal:true,runtime:"mediapipe",solutionPath:"https://cdn.jsdelivr.net/npm/@mediapipe/hands"});if(r&&typeof r.then==="function")r.then(ok).catch(fail);else ok(r);}catch(e){fail();}});};
+  const build=()=>{puppets=[];cons=[];const cx=p.width/2,cy=p.height*0.42;
+    const P=(x,y)=>{const pt={x,y,px:x,py:y,pinned:false};puppets.push(pt);return pt;};
+    const head=P(cx,cy-90),neck=P(cx,cy-58);const shL=P(cx-36,cy-42),shR=P(cx+36,cy-42);const elL=P(cx-56,cy+6),elR=P(cx+56,cy+6);const hL=P(cx-70,cy+52),hR=P(cx+70,cy+52);const hip=P(cx,cy+34);const kL=P(cx-18,cy+104),kR=P(cx+18,cy+104);const fL=P(cx-26,cy+166),fR=P(cx+26,cy+166);
+    headPt=head;hLPt=hL;hRPt=hR;kLPt=kL;kRPt=kR;
+    const C=(a,b,len)=>cons.push({a,b,len});
+    C(neck,head,34);C(neck,shL,40);C(neck,shR,40);C(shL,elL,50);C(elL,hL,46);C(shR,elR,50);C(elR,hR,46);C(shL,hip,72);C(shR,hip,72);C(hip,kL,70);C(hip,kR,70);C(kL,fL,62);C(kR,fR,62);C(shL,shR,72);};
+  const step=(g)=>{for(const pt of puppets){if(pt.pinned)continue;const vx=(pt.x-pt.px)*0.80,vy=(pt.y-pt.py)*0.80;pt.px=pt.x;pt.py=pt.y;pt.x+=vx;pt.y+=vy+g;}
+    for(let it=0;it<10;it++)for(const c of cons){const dx=c.b.x-c.a.x,dy=c.b.y-c.a.y;const d=Math.hypot(dx,dy)||1e-6;const diff=(d-c.len)/d;if(!c.a.pinned){c.a.x+=dx*diff*0.5;c.a.y+=dy*diff*0.5;}if(!c.b.pinned){c.b.x-=dx*diff*0.5;c.b.y-=dy*diff*0.5;}}};
+  p.setup=()=>{p.createCanvas(p.windowWidth,p.windowHeight);p.pixelDensity(1);p.colorMode(p.HSB,360,100,100,100);p.background(10);build();ensureCam();};
+  p.draw=()=>{if(p.frameCount%30===0)camStatus();
+    if(camLive()&&!handpose&&!handStarted)startHandpose();
+    if(camLive()){p.push();p.translate(p.width,0);p.scale(-1,1);p.image(video,0,0,p.width,p.height);p.pop();
+      p.noStroke();p.fill(0,0,0,58);p.rect(0,0,p.width,p.height);}
+    else{p.noStroke();p.fill(0,0,0,26);p.rect(0,0,p.width,p.height);}
+    const vw=video?(video.width||160):160,vh=video?(video.height||120):120;let tracks=null;
+    if(camLive()&&handpose&&hands.length){const kp=hands[0].keypoints;const k=(i)=>({x:(kp[i].x/vw)*p.width,y:(kp[i].y/vh)*p.height+80});
+      const tgt={head:k(12),hL:k(8),hR:k(16),kL:k(20),kR:k(4)};tracks=tgt;
+      if(!smooth)smooth=JSON.parse(JSON.stringify(tgt));
+      for(const key in tgt){smooth[key].x+=(tgt[key].x-smooth[key].x)*0.35;smooth[key].y+=(tgt[key].y-smooth[key].y)*0.35;}
+      headPt.x=smooth.head.x;headPt.y=smooth.head.y;headPt.pinned=true;hLPt.x=smooth.hL.x;hLPt.y=smooth.hL.y;hLPt.pinned=true;hRPt.x=smooth.hR.x;hRPt.y=smooth.hR.y;hRPt.pinned=true;kLPt.x=smooth.kL.x;kLPt.y=smooth.kL.y+160;kLPt.pinned=true;kRPt.x=smooth.kR.x;kRPt.y=smooth.kR.y+160;kRPt.pinned=true;}
+    else if(!camLive()){headPt.x=p.mouseX;headPt.y=p.mouseY+80;headPt.pinned=true;hLPt.x=p.mouseX-60;hLPt.y=p.mouseY+130;hLPt.pinned=true;hRPt.x=p.mouseX+60;hRPt.y=p.mouseY+130;hRPt.pinned=true;kLPt.x=p.mouseX-26;kLPt.y=p.mouseY+230;kLPt.pinned=true;kRPt.x=p.mouseX+26;kRPt.y=p.mouseY+230;kRPt.pinned=true;
+      tracks={head:{x:p.mouseX,y:p.mouseY+80},hL:{x:p.mouseX-60,y:p.mouseY+130},hR:{x:p.mouseX+60,y:p.mouseY+130},kL:{x:p.mouseX-26,y:p.mouseY+230},kR:{x:p.mouseX+26,y:p.mouseY+230}};}
+    else{headPt.x=p.width/2;headPt.y=80;headPt.pinned=true;hLPt.pinned=false;hRPt.pinned=false;kLPt.pinned=false;kRPt.pinned=false;}
+    step(0.7);
+    if(tracks){p.stroke(52,95,95,55);p.strokeWeight(1);p.line(tracks.head.x,tracks.head.y,headPt.x,headPt.y);p.line(tracks.hL.x,tracks.hL.y,hLPt.x,hLPt.y);p.line(tracks.hR.x,tracks.hR.y,hRPt.x,hRPt.y);p.line(tracks.kL.x,tracks.kL.y,kLPt.x,kLPt.y);p.line(tracks.kR.x,tracks.kR.y,kRPt.x,kRPt.y);}
+    p.stroke(52,95,95,120);p.strokeWeight(2);for(const c of cons)p.line(c.a.x,c.a.y,c.b.x,c.b.y);
+    p.noStroke();for(const pt of puppets){if(pt===headPt)continue;p.fill(52,95,95,150);p.circle(pt.x,pt.y,5);}
+    p.fill(52,95,95,190);p.circle(headPt.x,headPt.y,30);p.fill(0,0,10);p.circle(headPt.x-8,headPt.y-4,4.5);p.circle(headPt.x+8,headPt.y-4,4.5);p.stroke(0,0,10);p.strokeWeight(1.4);p.noFill();p.arc(headPt.x,headPt.y+4,14,9,0.15*Math.PI,0.85*Math.PI);};
+  p.windowResized=()=>{p.resizeCanvas(p.windowWidth,p.windowHeight);build();};
+});
+</script></body></html>

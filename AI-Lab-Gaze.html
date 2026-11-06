@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand Garden · AI Lab</title>
+<style>
+:root{--bg:#0b0b0c;--js:#f7df1e;--fg:#f5f4f0;--mut:#9ca3af;--line:#26262a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:ui-monospace,Menlo,monospace;overflow:hidden}
+h1{font-family:system-ui,sans-serif;letter-spacing:-.02em;line-height:1.05}
+a{color:var(--js);text-decoration:none}
+header{position:fixed;top:0;left:0;right:0;z-index:5;padding:20px 26px;pointer-events:none;background:linear-gradient(180deg,rgba(11,11,12,.88),transparent)}
+header .kicker{font-size:11px;color:var(--js);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+header h1{font-size:clamp(20px,2.8vw,36px)}
+header .sub{font-size:12px;color:var(--mut);margin-top:6px;max-width:680px}
+#lab{position:fixed;inset:0}
+#lab canvas{display:block}
+.status{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;font-size:11px;color:var(--mut);text-align:center;cursor:pointer;max-width:92vw}
+.status .live{color:var(--js)}
+.status .off{color:#f87171}
+footer{position:fixed;left:20px;bottom:14px;z-index:5;font-size:11px;color:#6b6b72;pointer-events:none}
+footer a{pointer-events:auto}
+@media (max-width:700px){footer{display:none}}
+</style></head><body>
+<header>
+  <p class="kicker">// the ai lab · 02 of 03</p>
+  <h1>leaves bloom where you <span style="color:var(--js)">point</span></h1>
+  <p class="sub">move your hand, pinch your fingers (or snap them) to plant leaves in the air. loads a small tracking model (needs internet).</p>
+</header>
+<div id="lab"></div>
+<p class="status" id="camStatus">webcam: waiting…</p>
+<footer><a href="Infinite-Patterns-AI-Lab.html">← ai lab</a> · <a href="Infinite-Patterns-WebStory.html">story</a></footer>
+<script src="p5.min.js"></script>
+<script>
+new p5((p) => {
+  let video=null,camTried=false,camOk=false,sprouts=[],pulses=[],blooms=0,hands=[],handpose=null,handStarted=false,prevThumb=null,prevWrist=null,snapAt=0,handCur=null,pinchClosed=false,pinchD=999;
+  const ensureCam=()=>{if(camTried)return;camTried=true;try{video=p.createCapture(p.VIDEO);video.size(160,120);video.hide();video.elt.onerror=()=>{camOk=false;};video.elt.onloadedmetadata=()=>{camOk=true;};}catch(e){camOk=false;}};
+  const camLive=()=>!!(camTried&&camOk&&video&&video.elt.videoWidth>0);
+  const camStatus=()=>{const el=document.getElementById("camStatus");if(!el)return;if(!camTried)el.innerHTML="webcam: waiting…";else if(camLive())el.innerHTML="webcam: <span class=\"live\">on</span>";else el.innerHTML="webcam: <span class=\"off\">unavailable or denied</span> · click to retry";};
+  document.getElementById("camStatus").addEventListener("click",()=>{camTried=false;camOk=false;if(video){try{video.remove();}catch(e){}}video=null;ensureCam();});
+  let ml5Pending=null;
+  const loadMl5=(cb)=>{if(window.ml5){cb();return;}
+    ml5Pending=ml5Pending||[];ml5Pending.push(cb);
+    if(ml5Pending.length>1)return;
+    const done=()=>{const cbs=ml5Pending;ml5Pending=null;cbs.forEach(f=>f());};
+    const tryLoad=(url)=>{const s=document.createElement("script");s.src=url;s.async=true;s.onload=()=>done();s.onerror=()=>{if(url.indexOf("unpkg")>=0)tryLoad("https://cdn.jsdelivr.net/npm/ml5@1/dist/ml5.js");else done();};document.head.appendChild(s);};
+    tryLoad("https://unpkg.com/ml5@1/dist/ml5.js");};
+  const startHandpose=()=>{if(handStarted)return;handStarted=true;loadMl5(()=>{if(!window.ml5){setTimeout(()=>{handStarted=false;},4000);return;}
+    const ok=(model)=>{handpose=model;handpose.detectStart(video,(res)=>{hands=res;});document.getElementById("camStatus").innerHTML="hand tracking: <span class=\"live\">on</span> · pinch to plant";};
+    const fail=()=>{handpose=null;setTimeout(()=>{handStarted=false;},2000);};
+    try{const r=window.ml5.handPose({maxHands:1,flipHorizontal:true,runtime:"mediapipe",solutionPath:"https://cdn.jsdelivr.net/npm/@mediapipe/hands"});if(r&&typeof r.then==="function")r.then(ok).catch(fail);else ok(r);}catch(e){fail();}});};
+  const plant=(x,y,n)=>{for(let i=0;i<n;i++)sprouts.push({x:x+p.random(-16,16),y:y+p.random(-16,16),a:p.random(-0.5,Math.PI+0.5),len:p.random(50,120),ph:p.random(p.TAU),seed:p.random(1000),hue:30+p.random(25),sat:70+p.random(25),bri:60+p.random(30),w:p.random(0.26,0.45),born:p.frameCount});};
+  const bloom=(x,y,n)=>{plant(x,y,n||7);pulses.push({x:x,y:y,born:p.frameCount});blooms++;};
+  const leaf=(lf,t,g,alpha)=>{const sw=Math.sin(t*0.7+lf.ph)*0.07;const a=lf.a+sw;const L0=lf.len*g;const ex=lf.x+Math.cos(a)*L0,ey=lf.y+Math.sin(a)*L0;const cxp=lf.x+Math.cos(a)*L0*0.5+p.noise(lf.seed,t*0.4)*14-7;const cyp=lf.y+Math.sin(a)*L0*0.5;
+    const sx=(u)=>{const uu=1-u;return uu*uu*lf.x+2*uu*u*cxp+u*u*ex;};const sy=(u)=>{const uu=1-u;return uu*uu*lf.y+2*uu*u*cyp+u*u*ey;};const N=10;const L=[],R=[];
+    for(let i=0;i<=N;i++){const u=i/N,du=0.02;const px=sx(u),py=sy(u);const tx=(sx(u+du)-sx(u-du))/(2*du);const ty=(sy(u+du)-sy(u-du))/(2*du);const tl=Math.hypot(tx,ty)||1;const nxp=-ty/tl,nyp=tx/tl;const w=lf.w*L0*Math.sin(Math.PI*u);L.push([px-nxp*w,py-nyp*w]);R.push([px+nxp*w,py+nyp*w]);}
+    p.noStroke();p.fill(lf.hue,lf.sat,lf.bri,34*alpha);p.beginShape();for(const q of L)p.vertex(q[0],q[1]);for(let i=N;i>=0;i--)p.vertex(R[i][0],R[i][1]);p.endShape(p.CLOSE);
+    p.stroke(lf.hue+8,lf.sat,Math.min(100,lf.bri+18),55*alpha);p.strokeWeight(1);for(let i=1;i<N;i+=2){const u=i/N;const px=sx(u),py=sy(u);const jx=(p.noise(lf.seed+i,t*0.5)-0.5)*10;const jy=(p.noise(lf.seed+i*3,t*0.5)-0.5)*10;p.line(px+jx,py+jy,px-jx*2,py-jy*2);p.point(px,py);}
+    p.noFill();p.stroke(lf.hue,lf.sat,lf.bri,80*alpha);p.strokeWeight(1);p.beginShape();for(const q of L)p.vertex(q[0],q[1]);for(let i=N;i>=0;i--)p.vertex(R[i][0],R[i][1]);p.endShape(p.CLOSE);};
+  p.setup=()=>{p.createCanvas(p.windowWidth,p.windowHeight);p.pixelDensity(1);p.colorMode(p.HSB,360,100,100,100);p.background(10);ensureCam();};
+  p.draw=()=>{if(p.frameCount%30===0)camStatus();
+    if(camLive()&&!handpose&&!handStarted)startHandpose();
+    if(camLive()&&!window.ml5){document.getElementById("camStatus").innerHTML="tracking unavailable · <span class=\"live\">mouse + click = plant</span>";}
+    p.noStroke();p.fill(30,35,4,18);p.rect(0,0,p.width,p.height);
+    const t=p.frameCount*0.001;
+    p.noFill();p.stroke(35,40,10,30);p.strokeWeight(1);for(let i=0;i<6;i++){const y=p.height*(0.05+0.9*i/6)+p.noise(i*3,t*0.3)*24;p.beginShape();for(let x=0;x<=p.width;x+=20)p.vertex(x,y+(p.noise(i*7+x*0.01,t*0.4)-0.5)*36);p.endShape();}
+    p.noStroke();for(let r=3;r>=0;r--){p.fill(40,70,82-r*12,11-r*3);p.circle(p.width*0.7,p.height*0.2,(40+r*26+Math.sin(t*2)*3)*2);}
+    if(!handCur)handCur={x:p.width/2,y:p.height/2};
+    const vw=video?(video.width||160):160,vh=video?(video.height||120):120;
+    const tracked=camLive()&&handpose&&hands.length;
+    if(tracked){const hk=hands[0].keypoints;
+      const mx=(x)=>(x/vw)*p.width,my=(y)=>(y/vh)*p.height;
+      const ix=mx(hk[8].x),iy=my(hk[8].y),tx=mx(hk[4].x),ty=my(hk[4].y),wx=mx(hk[0].x),wy=my(hk[0].y);
+      handCur.x+=(ix-handCur.x)*0.3;handCur.y+=(iy-handCur.y)*0.3;
+      pinchD=Math.hypot(hk[4].x-hk[8].x,hk[4].y-hk[8].y);
+      if(pinchD<20&&!pinchClosed){pinchClosed=true;bloom((ix+tx)/2,(iy+ty)/2,8);}
+      else if(pinchD>32)pinchClosed=false;
+      if(prevThumb){const tv=Math.hypot(tx-prevThumb.x,ty-prevThumb.y),wv=Math.hypot(wx-prevWrist.x,wy-prevWrist.y);
+        if(tv>45&&wv<32&&p.millis()-snapAt>350){snapAt=p.millis();bloom(handCur.x,handCur.y,7);}}
+      prevThumb={x:tx,y:ty};prevWrist={x:wx,y:wy};
+      const pinchGlow=Math.max(0,1-pinchD/60);
+      p.stroke(52,90,95,40+pinchGlow*60);p.strokeWeight(1);p.line(tx,ty,ix,iy);
+      p.noStroke();p.fill(52,90,95,60+pinchGlow*40);p.circle(tx,ty,6);p.circle(ix,iy,6);
+      if(pinchClosed){p.noFill();p.stroke(52,95,100,90);p.strokeWeight(1.4);p.circle((ix+tx)/2,(iy+ty)/2,16);}
+    }else{handCur.x+=(p.mouseX-handCur.x)*0.2;handCur.y+=(p.mouseY-handCur.y)*0.2;}
+    for(let i=sprouts.length-1;i>=0;i--){const s=sprouts[i];const age=p.frameCount-s.born;if(age>340){sprouts.splice(i,1);continue;}leaf(s,t,Math.min(1,age/50),Math.max(0,1-age/340));}
+    for(let i=pulses.length-1;i>=0;i--){const pu=pulses[i];const a=p.frameCount-pu.born;if(a>26){pulses.splice(i,1);continue;}p.noFill();p.stroke(52,90,95,90*(1-a/26));p.strokeWeight(2);p.circle(pu.x,pu.y,10+a*9);}
+    p.noStroke();p.fill(52,90,95,90);p.textSize(12);p.textAlign(p.RIGHT,p.BOTTOM);p.text(tracked?"blooms "+blooms:"no hand tracking: move mouse, click = plant",p.width-22,44);
+    p.noFill();p.stroke(52,90,95,110);p.strokeWeight(1.2);p.circle(handCur.x,handCur.y,24+Math.sin(p.frameCount*0.08)*6);p.line(handCur.x-13,handCur.y,handCur.x+13,handCur.y);p.line(handCur.x,handCur.y-13,handCur.x,handCur.y+13);
+    p.noStroke();p.fill(40,50,90,30);for(let i=0;i<30;i++)p.circle(p.noise(i*3.7,t*0.2)*p.width,p.noise(i*1.9,t*0.2+7)*p.height,1.4);
+    if(camLive()){const pw=180,ph=Math.round(pw*vh/vw),px=p.width-20-pw,py=p.height-20-ph;
+      p.push();p.translate(px,py);
+      p.push();p.translate(pw,0);p.scale(-1,1);p.image(video,0,0,pw,ph);p.pop();
+      p.noFill();p.stroke(52,90,95,80);p.strokeWeight(1);p.rect(0,0,pw,ph);
+      p.noStroke();p.fill(52,90,95,80);p.textSize(9);p.textAlign(p.LEFT,p.TOP);p.text("you",6,6);p.pop();}};
+  p.mousePressed=()=>{if(!(camLive()&&handpose&&hands.length))bloom(p.mouseX,p.mouseY,5);};
+  p.windowResized=()=>{p.resizeCanvas(p.windowWidth,p.windowHeight);};
+});
+</script></body></html>
